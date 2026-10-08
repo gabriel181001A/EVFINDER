@@ -3,6 +3,7 @@ package com.evfinder.controller;
 import com.evfinder.dto.VehicleRequest;
 import com.evfinder.dto.VehicleResponse;
 import com.evfinder.service.VehicleService;
+import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -20,7 +21,7 @@ public class VehicleController {
     }
 
     @PostMapping
-    public ResponseEntity<VehicleResponse> create(@RequestBody VehicleRequest request) {
+    public ResponseEntity<VehicleResponse> create(@Valid @RequestBody VehicleRequest request) {
         VehicleResponse response = vehicleService.createVehicle(request);
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }

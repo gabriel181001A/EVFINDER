@@ -26,7 +26,6 @@ public class Station {
     private Boolean isOperational = true;
 
     // Getters e Setters
-    // Dica: Se quiser usar o Lombok depois, basta colocar um @Data na classe e apagar isso
     public Long getId() { return id; }
     public void setId(Long id) { this.id = id; }
 

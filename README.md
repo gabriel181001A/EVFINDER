@@ -8,6 +8,8 @@ O serviço fornece uma API RESTful construída com **Spring Boot**, integrada a 
 
 ## 🚀 Tecnologias
 
+[![CI](https://github.com/gabriel181001A/EVFINDER/actions/workflows/ci.yml/badge.svg)](https://github.com/gabriel181001A/EVFINDER/actions/workflows/ci.yml)
+
 ![Java](https://img.shields.io/badge/Java-21-ED8B00?style=for-the-badge&logo=openjdk&logoColor=white)
 ![Spring Boot](https://img.shields.io/badge/Spring%20Boot-4.x-6DB33F?style=for-the-badge&logo=springboot&logoColor=white)
 ![PostgreSQL](https://img.shields.io/badge/PostgreSQL-15+-4169E1?style=for-the-badge&logo=postgresql&logoColor=white)
@@ -201,6 +203,25 @@ Todas as rotas seguem o padrão RESTful e utilizam o prefixo:
 /api/v1
 ```
 
+## Formato de erro
+
+Todos os erros retornam o mesmo formato JSON:
+
+```json
+{
+  "status": 400,
+  "error": "Bad Request",
+  "message": "Campos inválidos: latitude é obrigatório; name é obrigatório",
+  "timestamp": "2026-10-08T14:30:00"
+}
+```
+
+| Status | Quando acontece |
+|---|---|
+| `400` | Campo obrigatório ausente ou inválido, parâmetro com tipo errado, JSON malformado |
+| `404` | Recurso não encontrado (ex.: estação ou veículo com ID inexistente) ou rota inexistente |
+| `500` | Erro inesperado no servidor (registrado no log) |
+
 ---
 
 # 🔌 Stations
@@ -228,6 +249,16 @@ Cria uma nova estação na base de dados local.
   "powerKw": 150
 }
 ```
+
+#### Validações
+
+| Campo | Regra |
+|---|---|
+| `name` | Obrigatório |
+| `latitude` | Obrigatório, entre -90 e 90 |
+| `longitude` | Obrigatório, entre -180 e 180 |
+| `connectorType` | Opcional |
+| `powerKw` | Opcional, maior que zero |
 
 ---
 
@@ -308,6 +339,16 @@ Registra um novo veículo.
   "ownerWalletAddress": "A1B2C3D4E5"
 }
 ```
+
+#### Validações
+
+| Campo | Regra |
+|---|---|
+| `make` | Obrigatório |
+| `model` | Obrigatório |
+| `connectorType` | Obrigatório (usado para filtrar as estações compatíveis na recomendação) |
+| `batteryCapacityKwh` | Opcional, maior que zero |
+| `ownerWalletAddress` | Opcional |
 
 ---
 
@@ -406,6 +447,10 @@ Processa o check-in do usuário em uma estação.
   "userWalletAddress": "A1B2C3D4E5"
 }
 ```
+
+#### Validações
+
+`stationId` e `userWalletAddress` são obrigatórios.
 
 ---
 
@@ -556,6 +601,8 @@ Os testes não precisam de banco de dados nem da chave do Open Charge Map:
 ./mvnw test
 ```
 
+Eles também rodam automaticamente no GitHub Actions ([`.github/workflows/ci.yml`](.github/workflows/ci.yml)) a cada pull request e a cada push na `main`.
+
 ---
 
 # 📌 Status do projeto
@@ -572,6 +619,7 @@ Funcionalidades atualmente disponíveis:
 - [x] Sistema de recomendações
 - [x] Check-in
 - [x] Estrutura de recompensas
+- [x] Validação dos dados de entrada
 - [ ] Integração completa com blockchain
 - [ ] Emissão real de tokens
 - [ ] Autenticação e autorização
