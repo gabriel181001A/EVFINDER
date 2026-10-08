@@ -69,8 +69,7 @@ O backend é responsável por:
 Antes de iniciar o projeto, certifique-se de possuir:
 
 - Java 21
-- Docker
-- Docker Compose (opcional)
+- Docker com Docker Compose (já incluso no Docker Desktop; no Windows, o Docker Desktop exige o WSL 2)
 - Git
 - Maven Wrapper incluso no projeto
 
@@ -86,29 +85,29 @@ cd EVFINDER.back
 
 ## 🐘 2. Inicie o PostgreSQL
 
-Execute o seguinte comando:
+O banco está definido no [`docker-compose.yml`](EVFINDER.back/docker-compose.yml), com as mesmas credenciais do `application.properties`:
 
 ```bash
-docker run \
-  --name evfinder-postgres \
-  -e POSTGRES_DB=evfinder_db \
-  -e POSTGRES_USER=postgres \
-  -e POSTGRES_PASSWORD=postgres \
-  -p 5432:5432 \
-  -d postgres
+docker compose up -d
 ```
 
-Verifique se o container está executando:
+Verifique se o container está rodando e saudável (`healthy`):
 
 ```bash
-docker ps
+docker compose ps
 ```
 
-Você deverá encontrar o container:
+Os dados ficam no volume `evfinder-postgres-data` e sobrevivem a reinícios. Comandos úteis:
 
-```text
-evfinder-postgres
-```
+| Comando | O que faz |
+|---|---|
+| `docker compose stop` | Para o banco, mantendo os dados |
+| `docker compose down` | Remove o container, mantendo os dados |
+| `docker compose down -v` | Remove o container **e apaga todos os dados** |
+
+> Se você já tinha criado o container `evfinder-postgres` com `docker run`, remova-o antes com `docker rm -f evfinder-postgres`.
+
+> **Já tem um PostgreSQL instalado no computador usando a porta 5432?** Defina `DB_PORT=5433` no `.env` (veja o passo 3) **antes** do `docker compose up -d`. O Docker Compose e a aplicação leem a mesma variável, então os dois passam a usar a porta 5433. Sem isso, a aplicação conecta no PostgreSQL errado e falha com erro de autenticação.
 
 ---
 
@@ -506,22 +505,29 @@ Processa o check-in do usuário em uma estação.
 # 🗂️ Estrutura dos principais recursos
 
 ```text
-EVFINDER.back/
-│
-├── src/
-│   ├── main/
-│   │   ├── java/
-│   │   │   └── ...
-│   │   │
-│   │   └── resources/
-│   │       └── application.properties
-│   │
-│   └── test/
-│
-├── mvnw
-├── mvnw.cmd
-├── pom.xml
-└── README.md
+EVFINDER/
+├── .github/workflows/ci.yml        # CI: build e testes a cada PR
+├── README.md
+└── EVFINDER.back/
+    ├── src/
+    │   ├── main/
+    │   │   ├── java/com/evfinder/
+    │   │   │   ├── controller/     # Rotas REST
+    │   │   │   ├── service/        # Regras de negócio (ex.: recomendação)
+    │   │   │   ├── repository/     # Acesso ao banco (Spring Data JPA)
+    │   │   │   ├── entity/         # Tabelas: Station e Vehicle
+    │   │   │   ├── dto/            # Entrada e saída da API, com as validações
+    │   │   │   ├── integration/    # Cliente da API do Open Charge Map
+    │   │   │   ├── blockchain/     # Recompensas Solana (simuladas por enquanto)
+    │   │   │   ├── exception/      # Tratamento global de erros
+    │   │   │   └── config/         # CORS
+    │   │   └── resources/
+    │   │       └── application.properties
+    │   └── test/                   # Testes dos controllers
+    ├── .env.example                # Modelo das variáveis de ambiente (copie para .env)
+    ├── docker-compose.yml          # PostgreSQL local
+    ├── mvnw / mvnw.cmd             # Maven Wrapper
+    └── pom.xml
 ```
 
 ---
@@ -578,10 +584,8 @@ cd EVFINDER.back
 ### 3. Inicie o banco
 
 ```bash
-docker start evfinder-postgres
+docker compose up -d
 ```
-
-Caso o container ainda não exista, utilize o comando de criação apresentado anteriormente.
 
 ### 4. Configure o `.env`
 

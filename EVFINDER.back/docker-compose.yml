@@ -1,0 +1,26 @@
+# Banco de dados PostgreSQL para desenvolvimento local.
+# Uso (dentro de EVFINDER.back):  docker compose up -d
+# As credenciais batem com o application.properties.
+services:
+  postgres:
+    # Versão fixa: a partir da 18 a imagem muda o caminho dos dados no volume
+    image: postgres:17
+    container_name: evfinder-postgres
+    environment:
+      POSTGRES_DB: evfinder_db
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    ports:
+      # Porta do host vem do DB_PORT no .env (padrão 5432), a mesma que o Spring usa
+      - "${DB_PORT:-5432}:5432"
+    volumes:
+      # Os dados sobrevivem a "docker compose down" (use "down -v" para apagar tudo)
+      - evfinder-postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d evfinder_db"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+volumes:
+  evfinder-postgres-data:
