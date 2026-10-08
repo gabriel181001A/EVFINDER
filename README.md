@@ -219,6 +219,8 @@ Todos os erros retornam o mesmo formato JSON:
 |---|---|
 | `400` | Campo obrigatório ausente ou inválido, parâmetro com tipo errado, JSON malformado |
 | `404` | Recurso não encontrado (ex.: estação ou veículo com ID inexistente) ou rota inexistente |
+| `409` | Check-in repetido antes do intervalo mínimo, ou estação sem localização cadastrada |
+| `422` | Check-in feito longe demais da estação |
 | `500` | Erro inesperado no servidor (registrado no log) |
 
 ---
@@ -436,20 +438,59 @@ A funcionalidade utiliza o conceito de **Charge-to-Earn**, permitindo recompensa
 POST /api/v1/rewards/check-in
 ```
 
-Processa o check-in do usuário em uma estação.
+Registra o check-in do usuário em uma estação **cadastrada no banco local** (`/api/v1/stations`) e concede os tokens. Cada check-in fica salvo na tabela `check_ins`.
 
 #### Request
 
 ```json
 {
-  "stationId": 123,
-  "userWalletAddress": "A1B2C3D4E5"
+  "stationId": 1,
+  "userWalletAddress": "A1B2C3D4E5",
+  "latitude": -23.5613,
+  "longitude": -46.6565
+}
+```
+
+`latitude` e `longitude` são a **posição atual do usuário**, não a da estação.
+
+#### Response
+
+```json
+{
+  "status": "SUCCESS",
+  "message": "Check-in confirmado. Tokens processados com sucesso!",
+  "tokensAwarded": 5.0,
+  "solanaTransactionHash": "sol_tx_..."
 }
 ```
 
 #### Validações
 
-`stationId` e `userWalletAddress` são obrigatórios.
+| Campo | Regra |
+|---|---|
+| `stationId` | Obrigatório |
+| `userWalletAddress` | Obrigatório (espaços no início e no fim são ignorados) |
+| `latitude` | Obrigatório, entre -90 e 90 |
+| `longitude` | Obrigatório, entre -180 e 180 |
+
+#### Regras do check-in
+
+| Regra | Padrão | Erro quando não é cumprida |
+|---|---|---|
+| A estação precisa existir | — | `404` |
+| O usuário precisa estar perto da estação | até 200 m | `422` – `Você está a 300 m da estação. O check-in só é permitido a até 200 m.` |
+| A mesma carteira só pontua de novo na mesma estação depois de um intervalo | 24 h | `409` – `Você já fez check-in nesta estação. Tente novamente em 23h05min.` |
+| Tokens por check-in | 5 | — |
+
+O intervalo vale por estação: a mesma carteira pode fazer check-in em estações diferentes no mesmo dia. Check-ins simultâneos da mesma carteira na mesma estação não passam juntos, porque a estação fica travada no banco durante o check-in.
+
+Os valores padrão ficam no `application.properties` e podem ser alterados sem mexer no código:
+
+```properties
+rewards.tokens-per-check-in=5
+rewards.check-in-cooldown=24h
+rewards.max-check-in-distance-meters=200
+```
 
 ---
 
@@ -513,17 +554,17 @@ EVFINDER/
     │   ├── main/
     │   │   ├── java/com/evfinder/
     │   │   │   ├── controller/     # Rotas REST
-    │   │   │   ├── service/        # Regras de negócio (ex.: recomendação)
+    │   │   │   ├── service/        # Regras de negócio (ex.: recomendação, check-in)
     │   │   │   ├── repository/     # Acesso ao banco (Spring Data JPA)
-    │   │   │   ├── entity/         # Tabelas: Station e Vehicle
+    │   │   │   ├── entity/         # Tabelas: Station, Vehicle e CheckIn
     │   │   │   ├── dto/            # Entrada e saída da API, com as validações
     │   │   │   ├── integration/    # Cliente da API do Open Charge Map
     │   │   │   ├── blockchain/     # Recompensas Solana (simuladas por enquanto)
     │   │   │   ├── exception/      # Tratamento global de erros
-    │   │   │   └── config/         # CORS
+    │   │   │   └── config/         # CORS e regras do check-in (RewardProperties)
     │   │   └── resources/
     │   │       └── application.properties
-    │   └── test/                   # Testes dos controllers
+    │   └── test/                   # Testes dos controllers e das regras do check-in
     ├── .env.example                # Modelo das variáveis de ambiente (copie para .env)
     ├── docker-compose.yml          # PostgreSQL local
     ├── mvnw / mvnw.cmd             # Maven Wrapper
@@ -621,7 +662,7 @@ Funcionalidades atualmente disponíveis:
 - [x] Cadastro de veículos
 - [x] Associação com wallet Solana
 - [x] Sistema de recomendações
-- [x] Check-in
+- [x] Check-in com histórico, distância máxima e intervalo entre check-ins
 - [x] Estrutura de recompensas
 - [x] Validação dos dados de entrada
 - [ ] Integração completa com blockchain
