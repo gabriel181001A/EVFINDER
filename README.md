@@ -548,6 +548,7 @@ rewards.max-check-in-distance-meters=200
 ```text
 EVFINDER/
 ├── .github/workflows/ci.yml        # CI: build e testes a cada PR
+├── CLAUDE.md                       # Contexto e convenções para o Claude Code
 ├── README.md
 └── EVFINDER.back/
     ├── src/
