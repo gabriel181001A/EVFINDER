@@ -8,8 +8,8 @@ O serviço fornece uma API RESTful construída com **Spring Boot**, integrada a 
 
 ## 🚀 Tecnologias
 
-![Java](https://img.shields.io/badge/Java-17+-ED8B00?style=for-the-badge&logo=openjdk&logoColor=white)
-![Spring Boot](https://img.shields.io/badge/Spring%20Boot-3.x-6DB33F?style=for-the-badge&logo=springboot&logoColor=white)
+![Java](https://img.shields.io/badge/Java-21-ED8B00?style=for-the-badge&logo=openjdk&logoColor=white)
+![Spring Boot](https://img.shields.io/badge/Spring%20Boot-4.x-6DB33F?style=for-the-badge&logo=springboot&logoColor=white)
 ![PostgreSQL](https://img.shields.io/badge/PostgreSQL-15+-4169E1?style=for-the-badge&logo=postgresql&logoColor=white)
 ![Docker](https://img.shields.io/badge/Docker-Container-2496ED?style=for-the-badge&logo=docker&logoColor=white)
 ![Maven](https://img.shields.io/badge/Maven-Build-C71A36?style=for-the-badge&logo=apachemaven&logoColor=white)
@@ -66,7 +66,7 @@ O backend é responsável por:
 
 Antes de iniciar o projeto, certifique-se de possuir:
 
-- Java 17+
+- Java 21
 - Docker
 - Docker Compose (opcional)
 - Git
@@ -110,7 +110,26 @@ evfinder-postgres
 
 ---
 
-## ▶️ 3. Execute a aplicação
+## 🔑 3. Configure a chave do Open Charge Map
+
+A busca de estações reais usa a API do [Open Charge Map](https://openchargemap.org/site/develop/api), que exige uma chave.
+A chave **não fica no código**: ela é lida da variável de ambiente `OCM_API_KEY` ou de um arquivo `.env` dentro de `EVFINDER.back` (o `.env` está no `.gitignore`).
+
+```bash
+cp .env.example .env
+```
+
+Depois, edite o `.env` e preencha a sua chave:
+
+```text
+OCM_API_KEY=sua-chave-aqui
+```
+
+Sem a chave, a aplicação não inicia.
+
+---
+
+## ▶️ 4. Execute a aplicação
 
 No Linux/macOS:
 
@@ -519,10 +538,22 @@ docker start evfinder-postgres
 
 Caso o container ainda não exista, utilize o comando de criação apresentado anteriormente.
 
-### 4. Execute a aplicação
+### 4. Configure o `.env`
+
+Copie o `.env.example` para `.env` e preencha a `OCM_API_KEY`, como explicado em [Configure a chave do Open Charge Map](#-3-configure-a-chave-do-open-charge-map).
+
+### 5. Execute a aplicação
 
 ```bash
 ./mvnw spring-boot:run
+```
+
+### 6. Rode os testes
+
+Os testes não precisam de banco de dados nem da chave do Open Charge Map:
+
+```bash
+./mvnw test
 ```
 
 ---
