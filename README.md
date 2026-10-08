@@ -8,6 +8,8 @@ O serviço fornece uma API RESTful construída com **Spring Boot**, integrada a 
 
 ## 🚀 Tecnologias
 
+[![CI](https://github.com/gabriel181001A/EVFINDER/actions/workflows/ci.yml/badge.svg)](https://github.com/gabriel181001A/EVFINDER/actions/workflows/ci.yml)
+
 ![Java](https://img.shields.io/badge/Java-21-ED8B00?style=for-the-badge&logo=openjdk&logoColor=white)
 ![Spring Boot](https://img.shields.io/badge/Spring%20Boot-4.x-6DB33F?style=for-the-badge&logo=springboot&logoColor=white)
 ![PostgreSQL](https://img.shields.io/badge/PostgreSQL-15+-4169E1?style=for-the-badge&logo=postgresql&logoColor=white)
@@ -598,6 +600,8 @@ Os testes não precisam de banco de dados nem da chave do Open Charge Map:
 ```bash
 ./mvnw test
 ```
+
+Eles também rodam automaticamente no GitHub Actions ([`.github/workflows/ci.yml`](.github/workflows/ci.yml)) a cada pull request e a cada push na `main`.
 
 ---
 
