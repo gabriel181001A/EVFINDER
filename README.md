@@ -1,37 +1,168 @@
-# EVFINDER
+# ⚡ EVFinder Backend
 
-Para rodar o back-end pelo codespace utilize os seguites comandos: 
+> Backend RESTful da plataforma **EVFinder**, desenvolvida para localização, gerenciamento e recomendação de estações de carregamento para veículos elétricos.
 
+O serviço fornece uma API RESTful construída com **Spring Boot**, integrada a **PostgreSQL**, **Open Charge Map** e funcionalidades relacionadas à **Web3/Solana**.
+
+---
+
+## 🚀 Tecnologias
+
+![Java](https://img.shields.io/badge/Java-17+-ED8B00?style=for-the-badge&logo=openjdk&logoColor=white)
+![Spring Boot](https://img.shields.io/badge/Spring%20Boot-3.x-6DB33F?style=for-the-badge&logo=springboot&logoColor=white)
+![PostgreSQL](https://img.shields.io/badge/PostgreSQL-15+-4169E1?style=for-the-badge&logo=postgresql&logoColor=white)
+![Docker](https://img.shields.io/badge/Docker-Container-2496ED?style=for-the-badge&logo=docker&logoColor=white)
+![Maven](https://img.shields.io/badge/Maven-Build-C71A36?style=for-the-badge&logo=apachemaven&logoColor=white)
+![Solana](https://img.shields.io/badge/Solana-Web3-9945FF?style=for-the-badge&logo=solana&logoColor=white)
+
+---
+
+## 📋 Sobre o projeto
+
+O **EVFinder** tem como objetivo facilitar a localização e descoberta de pontos de carregamento para veículos elétricos.
+
+O backend é responsável por:
+
+- 🔌 Cadastro de estações de carregamento
+- 📍 Consulta de estações por localização
+- 🌎 Integração com a API do Open Charge Map
+- 🚗 Gerenciamento de veículos
+- 🔋 Compatibilidade entre veículos e conectores
+- 🧠 Sistema de recomendações
+- 👛 Associação de veículos a carteiras Solana
+- 🪙 Sistema de recompensas baseado em check-in
+- ⚡ Integração com funcionalidades Web3
+
+---
+
+# 🏗️ Arquitetura
+
+```text
+                         ┌─────────────────────┐
+                         │      Frontend       │
+                         │      EVFinder       │
+                         └──────────┬──────────┘
+                                    │
+                                    ▼
+                         ┌─────────────────────┐
+                         │     REST API        │
+                         │    Spring Boot      │
+                         └──────────┬──────────┘
+                                    │
+                  ┌─────────────────┼─────────────────┐
+                  │                 │                 │
+                  ▼                 ▼                 ▼
+           ┌─────────────┐   ┌─────────────┐   ┌─────────────┐
+           │ PostgreSQL  │   │ Open Charge │   │   Solana    │
+           │   Database  │   │     Map     │   │    Web3     │
+           └─────────────┘   └─────────────┘   └─────────────┘
+```
+
+---
+
+# 💻 Como executar
+
+## Pré-requisitos
+
+Antes de iniciar o projeto, certifique-se de possuir:
+
+- Java 17+
+- Docker
+- Docker Compose (opcional)
+- Git
+- Maven Wrapper incluso no projeto
+
+---
+
+## 📦 1. Acesse o backend
+
+```bash
 cd EVFINDER.back
-docker run --name evfinder-postgres -e POSTGRES_DB=evfinder_db -e POSTGRES_USER=postgres -e POSTGRES_PASSWORD=postgres -p 5432:5432 -d postgres
+```
+
+---
+
+## 🐘 2. Inicie o PostgreSQL
+
+Execute o seguinte comando:
+
+```bash
+docker run \
+  --name evfinder-postgres \
+  -e POSTGRES_DB=evfinder_db \
+  -e POSTGRES_USER=postgres \
+  -e POSTGRES_PASSWORD=postgres \
+  -p 5432:5432 \
+  -d postgres
+```
+
+Verifique se o container está executando:
+
+```bash
+docker ps
+```
+
+Você deverá encontrar o container:
+
+```text
+evfinder-postgres
+```
+
+---
+
+## ▶️ 3. Execute a aplicação
+
+No Linux/macOS:
+
+```bash
 ./mvnw spring-boot:run
+```
 
-para testar os endpoints abra um novo terminal BASH e utilize comandos curl.
-Ex:  "curl -X POST http://localhost:8080/api/v1/stations \
--H "Content-Type: application/json" \
--d '{
-  "name": "Supercharger Central",
-  "latitude": -22.9068,
-  "longitude": -47.0616,
-  "connectorType": "Type 2",
-  "powerKw": 150
-}'"
+No Windows:
 
-==============================================
+```bash
+mvnw.cmd spring-boot:run
+```
 
-🔌 Documentação da API (Endpoints)
-A API do EVFinder está estruturada de forma RESTful sob o prefixo /api/v1. Abaixo estão os endpoints disponíveis e os respetivos formatos de comunicação.
+Por padrão, a API estará disponível em:
 
-📍 Estações (Stations)
-Gerir postos de carregamento locais e pesquisar postos reais via Open Charge Map.
+```text
+http://localhost:8080
+```
 
-POST /api/v1/stations
+---
 
-Descrição: Regista um novo posto de carregamento na base de dados local.
+# 🧪 Testando a API
 
-Corpo do Pedido (JSON):
+Você pode utilizar ferramentas como:
 
-JSON
+- cURL
+- Postman
+- Insomnia
+- Bruno
+- Swagger, caso configurado no projeto
+
+---
+
+## 📍 Criar uma estação
+
+### Request
+
+```bash
+curl -X POST http://localhost:8080/api/v1/stations \
+  -H "Content-Type: application/json" \
+  -d '{
+    "name": "Supercharger Central",
+    "latitude": -22.9068,
+    "longitude": -47.0616,
+    "connectorType": "Type 2",
+    "powerKw": 150
+  }'
+```
+
+### Body
+
+```json
 {
   "name": "Supercharger Central",
   "latitude": -22.9068,
@@ -39,36 +170,117 @@ JSON
   "connectorType": "Type 2",
   "powerKw": 150
 }
+```
+
+---
+
+# 📚 Documentação da API
+
+Todas as rotas seguem o padrão RESTful e utilizam o prefixo:
+
+```text
+/api/v1
+```
+
+---
+
+# 🔌 Stations
+
+Gerenciamento dos postos de carregamento.
+
+Também permite consultar estações reais utilizando a API do **Open Charge Map**.
+
+### Criar estação
+
+```http
+POST /api/v1/stations
+```
+
+Cria uma nova estação na base de dados local.
+
+#### Request
+
+```json
+{
+  "name": "Supercharger Central",
+  "latitude": -22.9068,
+  "longitude": -47.0616,
+  "connectorType": "Type 2",
+  "powerKw": 150
+}
+```
+
+---
+
+### Listar estações
+
+```http
 GET /api/v1/stations
+```
 
-Descrição: Lista todos os postos guardados na base de dados local.
+Retorna todas as estações cadastradas localmente.
 
+---
+
+### Buscar estação por ID
+
+```http
 GET /api/v1/stations/{id}
+```
 
-Descrição: Obtém os detalhes de um posto específico pelo seu ID.
+Retorna os detalhes de uma estação específica.
 
+#### Exemplo
+
+```http
+GET /api/v1/stations/1
+```
+
+---
+
+### Buscar estações em tempo real
+
+```http
 GET /api/v1/stations/search-live
+```
 
-Descrição: Pesquisa postos reais na API do Open Charge Map com base nas coordenadas fornecidas.
+Consulta estações reais utilizando o **Open Charge Map**.
 
-Parâmetros da Query:
+#### Query Parameters
 
-lat (Obrigatório): Latitude (ex: -21.4223).
+| Parâmetro | Obrigatório | Descrição | Exemplo |
+|---|---|---|---|
+| `lat` | ✅ | Latitude | `-22.9068` |
+| `lng` | ✅ | Longitude | `-47.0616` |
+| `distance` | ❌ | Raio de busca em km | `10` |
 
-lng (Obrigatório): Longitude (ex: -42.4231).
+#### Exemplo
 
-distance (Opcional): Raio de pesquisa em km (padrão: 10).
+```http
+GET /api/v1/stations/search-live?lat=-22.9068&lng=-47.0616&distance=10
+```
 
-🚗 Veículos (Vehicles)
-Gerir os veículos dos utilizadores e associá-los às carteiras Solana.
+---
 
+# 🚗 Vehicles
+
+Gerenciamento dos veículos dos usuários.
+
+Os veículos podem ser associados a carteiras da blockchain **Solana**.
+
+---
+
+### Criar veículo
+
+```http
 POST /api/v1/vehicles
+```
 
-Descrição: Regista um novo veículo para um utilizador.
+Registra um novo veículo.
 
-Corpo do Pedido (JSON):
+#### Request
 
-JSON
+```json
 {
   "make": "BYD",
   "model": "Dolphin",
@@ -76,42 +288,274 @@ JSON
   "connectorType": "Type 2",
   "ownerWalletAddress": "A1B2C3D4E5"
 }
+```
+
+---
+
+### Listar veículos
+
+```http
 GET /api/v1/vehicles
+```
 
-Descrição: Lista todos os veículos registados no sistema.
+Retorna todos os veículos cadastrados.
 
+---
+
+### Buscar veículos por carteira
+
+```http
 GET /api/v1/vehicles/wallet/{walletAddress}
+```
 
-Descrição: Devolve a lista de veículos associados a uma carteira específica da blockchain Solana.
+Retorna todos os veículos associados a uma carteira Solana.
 
-🧠 Recomendações (Recommendations)
-O motor de cruzamento de dados entre a garagem do utilizador e o mundo real.
+#### Exemplo
 
+```http
+GET /api/v1/vehicles/wallet/A1B2C3D4E5
+```
+
+---
+
+# 🧠 Recommendations
+
+O módulo de recomendações realiza o cruzamento entre:
+
+```text
+Veículo do usuário
+        +
+Localização atual
+        +
+Estações disponíveis
+        +
+Tipo de conector
+        ↓
+Recomendações compatíveis
+```
+
+---
+
+### Buscar recomendações
+
+```http
 GET /api/v1/recommendations
+```
 
-Descrição: Recomenda postos de carregamento reais na zona do utilizador, filtrando automaticamente para mostrar apenas as estações que possuem conectores compatíveis com a ficha do veículo especificado.
+Retorna estações reais próximas ao usuário que sejam compatíveis com o veículo selecionado.
 
-Parâmetros da Query:
+#### Query Parameters
 
-vehicleId (Obrigatório): ID do veículo na base de dados local.
+| Parâmetro | Obrigatório | Descrição | Exemplo |
+|---|---|---|---|
+| `vehicleId` | ✅ | ID do veículo | `1` |
+| `lat` | ✅ | Latitude atual | `-22.9068` |
+| `lng` | ✅ | Longitude atual | `-47.0616` |
+| `radiusKm` | ❌ | Raio de busca em km | `15` |
 
-lat (Obrigatório): Latitude atual.
+#### Exemplo
 
-lng (Obrigatório): Longitude atual.
+```http
+GET /api/v1/recommendations?vehicleId=1&lat=-22.9068&lng=-47.0616&radiusKm=15
+```
 
-radiusKm (Opcional): Raio de pesquisa em km (padrão: 15).
+---
 
-💰 Recompensas (Rewards / Charge-to-Earn)
-Integração com a Web3 para recompensar utilizadores pela utilização da plataforma.
+# 🪙 Rewards — Charge-to-Earn
 
+Módulo responsável pelo sistema de recompensas do EVFinder.
+
+A funcionalidade utiliza o conceito de **Charge-to-Earn**, permitindo recompensar usuários por interações com estações de carregamento.
+
+> Atualmente, a emissão da recompensa utiliza um hash de transação simulado para representar a integração com a rede Solana.
+
+---
+
+### Check-in em uma estação
+
+```http
 POST /api/v1/rewards/check-in
+```
 
-Descrição: Processa o check-in num posto e emite tokens de recompensa para a carteira do utilizador (atualmente a simular o hash de transação da rede Solana).
+Processa o check-in do usuário em uma estação.
 
-Corpo do Pedido (JSON):
+#### Request
 
-JSON
+```json
 {
   "stationId": 123,
   "userWalletAddress": "A1B2C3D4E5"
 }
+```
+
+---
+
+# 🔄 Fluxo principal
+
+```text
+                    ┌───────────────┐
+                    │    Usuário    │
+                    └───────┬───────┘
+                            │
+                            ▼
+                    ┌───────────────┐
+                    │ Cadastra carro│
+                    └───────┬───────┘
+                            │
+                            ▼
+                    ┌───────────────┐
+                    │ Localização   │
+                    │     atual     │
+                    └───────┬───────┘
+                            │
+                            ▼
+                  ┌───────────────────┐
+                  │ Recommendation    │
+                  │      Engine       │
+                  └─────────┬─────────┘
+                            │
+                            ▼
+                  ┌───────────────────┐
+                  │ Open Charge Map   │
+                  └─────────┬─────────┘
+                            │
+                            ▼
+                  ┌───────────────────┐
+                  │ Estações          │
+                  │ compatíveis       │
+                  └─────────┬─────────┘
+                            │
+                            ▼
+                  ┌───────────────────┐
+                  │      Check-in     │
+                  └─────────┬─────────┘
+                            │
+                            ▼
+                  ┌───────────────────┐
+                  │   Reward / Token  │
+                  │      Solana       │
+                  └───────────────────┘
+```
+
+---
+
+# 🗂️ Estrutura dos principais recursos
+
+```text
+EVFINDER.back/
+│
+├── src/
+│   ├── main/
+│   │   ├── java/
+│   │   │   └── ...
+│   │   │
+│   │   └── resources/
+│   │       └── application.properties
+│   │
+│   └── test/
+│
+├── mvnw
+├── mvnw.cmd
+├── pom.xml
+└── README.md
+```
+
+---
+
+# 🌐 Integrações
+
+## Open Charge Map
+
+Utilizado para consultar estações de carregamento reais próximas às coordenadas fornecidas pelo usuário.
+
+```text
+EVFinder
+    │
+    ▼
+Recommendation Engine
+    │
+    ▼
+Open Charge Map API
+    │
+    ▼
+Estações disponíveis
+```
+
+---
+
+## Solana / Web3
+
+O projeto possui integração conceitual com a blockchain Solana para:
+
+- Identificação de usuários através de wallet
+- Associação de veículos às wallets
+- Recompensas
+- Charge-to-Earn
+- Futuras transações on-chain
+
+---
+
+# 🛠️ Desenvolvimento
+
+Para contribuir com o projeto:
+
+### 1. Clone o repositório
+
+```bash
+git clone <URL_DO_REPOSITORIO>
+```
+
+### 2. Entre no diretório
+
+```bash
+cd EVFINDER.back
+```
+
+### 3. Inicie o banco
+
+```bash
+docker start evfinder-postgres
+```
+
+Caso o container ainda não exista, utilize o comando de criação apresentado anteriormente.
+
+### 4. Execute a aplicação
+
+```bash
+./mvnw spring-boot:run
+```
+
+---
+
+# 📌 Status do projeto
+
+🚧 **Em desenvolvimento**
+
+Funcionalidades atualmente disponíveis:
+
+- [x] CRUD de estações
+- [x] Consulta de estações
+- [x] Integração com Open Charge Map
+- [x] Cadastro de veículos
+- [x] Associação com wallet Solana
+- [x] Sistema de recomendações
+- [x] Check-in
+- [x] Estrutura de recompensas
+- [ ] Integração completa com blockchain
+- [ ] Emissão real de tokens
+- [ ] Autenticação e autorização
+- [ ] Testes automatizados completos
+
+---
+
+# 👨‍💻 Projeto
+
+**EVFinder**
+
+Sistema desenvolvido para facilitar a localização de estações de carregamento e criar uma experiência integrada entre **mobilidade elétrica, geolocalização e Web3**.
+
+---
+
+<p align="center">
+  Desenvolvido com ⚡ para o futuro da mobilidade elétrica.
+</p>
