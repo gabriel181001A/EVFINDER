@@ -5,7 +5,9 @@ import com.evfinder.entity.Vehicle;
 import com.evfinder.exception.ResourceNotFoundException;
 import com.evfinder.integration.OpenChargeClient;
 import com.evfinder.repository.VehicleRepository;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
+import org.springframework.web.server.ResponseStatusException;
 
 import java.util.List;
 
@@ -26,11 +28,17 @@ public class RecommendationService {
         Vehicle vehicle = vehicleRepository.findById(vehicleId)
                 .orElseThrow(() -> new ResourceNotFoundException("Veículo não encontrado. ID: " + vehicleId));
 
+        // Sem conector não há como filtrar, então nem chama a API externa
+        String carConnector = vehicle.getConnectorType(); // ex: "Type 2"
+        if (carConnector == null || carConnector.isBlank()) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                    "Veículo " + vehicleId + " não tem tipo de conector cadastrado.");
+        }
+
         // 2. Busca todas as estações reais na localização informada
         List<OcmStationDto> nearbyStations = openChargeClient.fetchStationsNearLocation(currentLat, currentLng, radiusKm);
 
         // 3. A MÁGICA: Filtra apenas os postos que têm a mesma ficha do carro
-        String carConnector = vehicle.getConnectorType(); // ex: "Type 2"
 
         List<OcmStationDto> compatibleStations = nearbyStations.stream()
             .filter(station -> station.connections() != null && station.connections().stream()
