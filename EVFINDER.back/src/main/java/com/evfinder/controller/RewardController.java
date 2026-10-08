@@ -3,6 +3,7 @@ package com.evfinder.controller;
 import com.evfinder.blockchain.TokenRewardService;
 import com.evfinder.dto.CheckInRequest;
 import com.evfinder.dto.RewardResponse;
+import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -18,7 +19,7 @@ public class RewardController {
     }
 
     @PostMapping("/check-in")
-    public ResponseEntity<RewardResponse> checkIn(@RequestBody CheckInRequest request) {
+    public ResponseEntity<RewardResponse> checkIn(@Valid @RequestBody CheckInRequest request) {
         
         // Executa a lógica no serviço isolado
         String txHash = rewardService.processReward(request.userWalletAddress());

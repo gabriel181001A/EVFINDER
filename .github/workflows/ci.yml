@@ -1,0 +1,29 @@
+# Compila o backend e roda os testes a cada pull request e a cada push na main.
+# Os testes não precisam de banco de dados nem da chave do Open Charge Map.
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  build:
+    name: Build e testes
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: EVFINDER.back
+
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: '21'
+          cache: maven
+          cache-dependency-path: EVFINDER.back/pom.xml
+
+      - name: Compilar, testar e empacotar
+        run: ./mvnw -B verify
