@@ -4,6 +4,7 @@ import com.evfinder.integration.OpenChargeClient;
 import com.evfinder.dto.StationRequest;
 import com.evfinder.dto.StationResponse;
 import com.evfinder.service.StationService;
+import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -33,7 +34,7 @@ public class StationController {
     }
 
     @PostMapping
-    public ResponseEntity<StationResponse> create(@RequestBody StationRequest request) {
+    public ResponseEntity<StationResponse> create(@Valid @RequestBody StationRequest request) {
         StationResponse response = stationService.createStation(request);
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }

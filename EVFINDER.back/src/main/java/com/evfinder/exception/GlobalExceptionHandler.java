@@ -9,10 +9,12 @@ import org.springframework.http.HttpStatusCode;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.web.ErrorResponse;
+import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 
 import java.time.LocalDateTime;
+import java.util.stream.Collectors;
 
 @RestControllerAdvice
 public class GlobalExceptionHandler {
@@ -22,6 +24,16 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(ResourceNotFoundException.class)
     public ResponseEntity<ApiErrorResponse> handleResourceNotFound(ResourceNotFoundException ex) {
         return buildResponse(HttpStatus.NOT_FOUND, ex.getMessage());
+    }
+
+    // Campos do corpo que não passaram nas validações dos DTOs (@NotBlank, @NotNull...)
+    @ExceptionHandler(MethodArgumentNotValidException.class)
+    public ResponseEntity<ApiErrorResponse> handleValidation(MethodArgumentNotValidException ex) {
+        String invalidFields = ex.getBindingResult().getFieldErrors().stream()
+                .map(error -> error.getField() + " " + error.getDefaultMessage())
+                .sorted()
+                .collect(Collectors.joining("; "));
+        return buildResponse(HttpStatus.BAD_REQUEST, "Campos inválidos: " + invalidFields);
     }
 
     // Parâmetro com tipo errado (ex: lat=abc) ou JSON malformado no corpo da requisição
