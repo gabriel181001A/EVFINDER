@@ -220,7 +220,7 @@ Todos os erros retornam o mesmo formato JSON:
 |---|---|
 | `400` | Campo obrigatório ausente ou inválido, parâmetro com tipo errado, JSON malformado |
 | `401` | Rota que exige login chamada sem token, ou com token vencido ou encerrado; assinatura ou desafio inválido no login |
-| `404` | Recurso não encontrado (ex.: estação ou veículo com ID inexistente) ou rota inexistente |
+| `404` | Recurso não encontrado (ex.: estação ou veículo com ID inexistente, ou veículo de outra carteira) ou rota inexistente |
 | `409` | Check-in repetido antes do intervalo mínimo, ou estação sem localização cadastrada |
 | `422` | Check-in feito longe demais da estação |
 | `500` | Erro inesperado no servidor (registrado no log) |
@@ -319,7 +319,7 @@ GET /api/v1/stations/search-live?lat=-22.9068&lng=-47.0616&distance=10
 
 Gerenciamento dos veículos dos usuários.
 
-Os veículos podem ser associados a carteiras da blockchain **Solana**.
+**Todas as rotas exigem login** (veja [Auth](#-auth--login-com-a-carteira)). Cada veículo pertence à carteira de quem o cadastrou, e cada usuário só vê os próprios veículos.
 
 ---
 
@@ -327,9 +327,10 @@ Os veículos podem ser associados a carteiras da blockchain **Solana**.
 
 ```http
 POST /api/v1/vehicles
+Authorization: Bearer <token>
 ```
 
-Registra um novo veículo.
+Registra um novo veículo na carteira do usuário logado.
 
 #### Request
 
@@ -338,10 +339,11 @@ Registra um novo veículo.
   "make": "BYD",
   "model": "Dolphin",
   "batteryCapacityKwh": 44,
-  "connectorType": "Type 2",
-  "ownerWalletAddress": "A1B2C3D4E5"
+  "connectorType": "Type 2"
 }
 ```
+
+A carteira dona do veículo vem do token. Um `ownerWalletAddress` enviado no corpo é ignorado.
 
 #### Validações
 
@@ -351,33 +353,17 @@ Registra um novo veículo.
 | `model` | Obrigatório |
 | `connectorType` | Obrigatório (usado para filtrar as estações compatíveis na recomendação) |
 | `batteryCapacityKwh` | Opcional, maior que zero |
-| `ownerWalletAddress` | Opcional |
 
 ---
 
-### Listar veículos
+### Listar meus veículos
 
 ```http
 GET /api/v1/vehicles
+Authorization: Bearer <token>
 ```
 
-Retorna todos os veículos cadastrados.
-
----
-
-### Buscar veículos por carteira
-
-```http
-GET /api/v1/vehicles/wallet/{walletAddress}
-```
-
-Retorna todos os veículos associados a uma carteira Solana.
-
-#### Exemplo
-
-```http
-GET /api/v1/vehicles/wallet/A1B2C3D4E5
-```
+Retorna os veículos da carteira do usuário logado (a "garagem").
 
 ---
 
@@ -403,9 +389,12 @@ Recomendações compatíveis
 
 ```http
 GET /api/v1/recommendations
+Authorization: Bearer <token>
 ```
 
 Retorna estações reais próximas ao usuário que sejam compatíveis com o veículo selecionado.
+
+**Exige login**, e o veículo precisa ser do usuário logado. Um veículo de outra carteira recebe `404`, o mesmo de um veículo inexistente, para não revelar quais IDs existem.
 
 #### Query Parameters
 
@@ -522,7 +511,16 @@ Encerra a sessão do token. Responde `204`.
 
 Envie o token no cabeçalho `Authorization: Bearer <token>`. Sem token, ou com token vencido ou encerrado, a resposta é `401`.
 
-Hoje, só o [check-in](#check-in-em-uma-estação) exige login.
+Exigem login:
+
+| Rota | O que a carteira logada define |
+|---|---|
+| `POST /api/v1/vehicles` | Dona do veículo cadastrado |
+| `GET /api/v1/vehicles` | Quais veículos aparecem (só os dela) |
+| `GET /api/v1/recommendations` | Quais veículos podem ser usados (só os dela) |
+| `POST /api/v1/rewards/check-in` | Carteira que recebe os tokens |
+
+As rotas de estações (`/api/v1/stations`) continuam públicas.
 
 O token não fica salvo no banco, só o hash SHA-256 dele. As validades ficam no `application.properties`:
 
@@ -788,7 +786,8 @@ Funcionalidades atualmente disponíveis:
 - [ ] Integração completa com blockchain
 - [ ] Emissão real de tokens
 - [x] Login com a carteira Solana (assinatura de mensagem)
-- [ ] Login exigido também nas rotas de veículos
+- [x] Login exigido nas rotas de veículos, recomendações e check-in
+- [ ] Cadastro de estações restrito a administradores
 - [ ] Testes automatizados completos
 
 ---

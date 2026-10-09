@@ -31,7 +31,7 @@ O arquivo `.env` (fora do git, modelo em `.env.example`) precisa de:
   - O app pede um desafio (nonce + mensagem, válido por 5 min), a carteira assina e o app troca a assinatura por um token de sessão (7 dias).
   - A assinatura é Ed25519 e é conferida pelo `SolanaSignatureVerifier`, usando o próprio endereço como chave pública. Não há biblioteca externa: Base58 é próprio e Ed25519 é nativo do Java.
   - Cada desafio vale uma vez. O banco guarda só o SHA-256 do token. Não há Spring Security.
-  - Para exigir login numa rota, adicione um parâmetro `@AuthenticatedWallet String walletAddress` no controller. O `AuthenticatedWalletResolver` lê `Authorization: Bearer <token>` e responde 401 se o token for inválido.
+  - Para exigir login numa rota, adicione um parâmetro `@AuthenticatedWallet String walletAddress` no controller, antes dos outros parâmetros, para que o 401 venha antes da validação do corpo. Recursos do usuário são buscados filtrando pelo dono (ex.: `findByIdAndOwnerWalletAddress`), e o recurso de outra carteira responde 404. O `AuthenticatedWalletResolver` lê `Authorization: Bearer <token>` e responde 401 se o token for inválido.
   - Nos testes de controller, registre o resolver com `.setCustomArgumentResolvers(new AuthenticatedWalletResolver(authServiceMock))`. Nos testes de assinatura, use a `TestWallet`, que gera chaves Ed25519 de verdade.
 - **Banco:** usa `ddl-auto=update`, sem migrations. O Hibernate cria e atualiza as tabelas.
 - **Check-in** (`CheckInService`):
@@ -67,12 +67,13 @@ Atualize esta seção ao concluir uma etapa.
 - CI no GitHub Actions.
 - `docker-compose.yml`.
 - Check-in com regras de negócio e histórico.
-- Login com a carteira Solana. O check-in exige login.
+- Login com a carteira Solana.
+- Exigem login: check-in, veículos (cadastro e "meus veículos") e recomendações (só com veículo próprio; veículo de outra carteira recebe 404).
 
 **Próximos passos candidatos**, em ordem de prioridade sugerida:
-1. **Check-in em estações do Open Charge Map.** Elas aparecem nas recomendações, mas o `OcmStationDto` ainda não expõe o ID da estação.
-2. **Emissão real de tokens na Solana.** Ela deve sair da transação do banco: salvar o check-in como pendente e emitir depois.
-3. **Login nas rotas de veículos.** Hoje qualquer pessoa cadastra veículo para qualquer carteira. Basta usar o `@AuthenticatedWallet` no `VehicleController`.
+1. **Restringir o cadastro de estações.** O `POST /stations` é público, e o check-in vale para qualquer estação do banco local. Alguém pode criar estações onde está e fazer check-in em cada uma para acumular tokens. É preciso um conceito de administrador, o que exige uma decisão do usuário.
+2. **Check-in em estações do Open Charge Map.** Elas aparecem nas recomendações, mas o `OcmStationDto` ainda não expõe o ID da estação.
+3. **Emissão real de tokens na Solana.** Ela deve sair da transação do banco: salvar o check-in como pendente e emitir depois.
 
 **Limitações conhecidas:**
 - A posição do usuário no check-in vem do cliente e pode ser falsificada.
