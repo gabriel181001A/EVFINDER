@@ -35,12 +35,10 @@ public class CheckInService {
         this.properties = properties;
     }
 
+    // walletAddress é a carteira autenticada pelo token de sessão.
     // A transação mantém a estação travada desde a checagem de repetição até o check-in ser salvo
     @Transactional
-    public RewardResponse checkIn(CheckInRequest request) {
-        // Espaços extras não podem virar uma "carteira nova" para escapar do intervalo entre check-ins
-        String walletAddress = request.userWalletAddress().trim();
-
+    public RewardResponse checkIn(String walletAddress, CheckInRequest request) {
         Station station = stationRepository.findLockedById(request.stationId())
                 .orElseThrow(() -> new ResourceNotFoundException("Estação com ID " + request.stationId() + " não encontrada."));
 

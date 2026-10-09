@@ -2,15 +2,12 @@ package com.evfinder.dto;
 
 import jakarta.validation.constraints.DecimalMax;
 import jakarta.validation.constraints.DecimalMin;
-import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 
+// A carteira não vem no corpo: ela sai do token de sessão (veja AuthController)
 public record CheckInRequest(
     @NotNull(message = "é obrigatório")
     Long stationId,
-
-    @NotBlank(message = "é obrigatório")
-    String userWalletAddress,
 
     // Posição atual do usuário, usada para conferir se ele está perto da estação
     @NotNull(message = "é obrigatório")

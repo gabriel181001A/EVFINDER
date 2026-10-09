@@ -32,6 +32,7 @@ O backend é responsável por:
 - 🔋 Compatibilidade entre veículos e conectores
 - 🧠 Sistema de recomendações
 - 👛 Associação de veículos a carteiras Solana
+- 🔐 Login com a carteira Solana, por assinatura de mensagem
 - 🪙 Sistema de recompensas baseado em check-in
 - ⚡ Integração com funcionalidades Web3
 
@@ -218,6 +219,7 @@ Todos os erros retornam o mesmo formato JSON:
 | Status | Quando acontece |
 |---|---|
 | `400` | Campo obrigatório ausente ou inválido, parâmetro com tipo errado, JSON malformado |
+| `401` | Rota que exige login chamada sem token, ou com token vencido ou encerrado; assinatura ou desafio inválido no login |
 | `404` | Recurso não encontrado (ex.: estação ou veículo com ID inexistente) ou rota inexistente |
 | `409` | Check-in repetido antes do intervalo mínimo, ou estação sem localização cadastrada |
 | `422` | Check-in feito longe demais da estação |
@@ -422,6 +424,115 @@ GET /api/v1/recommendations?vehicleId=1&lat=-22.9068&lng=-47.0616&radiusKm=15
 
 ---
 
+# 🔐 Auth — Login com a carteira
+
+O usuário entra provando que é dono da carteira Solana: ele assina uma mensagem com a carteira (ex.: Phantom), e a API confere a assinatura. Não há senha, e o endereço da carteira é a própria chave pública usada na verificação.
+
+```text
+App + carteira                              API
+     │  POST /auth/challenge {walletAddress}  ──▶  │  gera nonce e mensagem (vale 5 min)
+     │  ◀──────────────── mensagem ──────────────  │
+     │  a carteira assina a mensagem               │
+     │  POST /auth/verify {assinatura}  ────────▶  │  confere a assinatura (Ed25519)
+     │  ◀──────────────── token ─────────────────  │  sessão válida por 7 dias
+     │  Authorization: Bearer <token>  ─────────▶  │  rotas que exigem login
+```
+
+---
+
+### Pedir o desafio
+
+```http
+POST /api/v1/auth/challenge
+```
+
+#### Request
+
+```json
+{
+  "walletAddress": "2KRkuVLqPqBT74msykhAScZy3uWcvCJH2vwjoz17xaqt"
+}
+```
+
+`walletAddress` precisa ser um endereço Solana válido (32 bytes em Base58). Caso contrário, a resposta é `400`.
+
+#### Response
+
+```json
+{
+  "walletAddress": "2KRkuVLqPqBT74msykhAScZy3uWcvCJH2vwjoz17xaqt",
+  "nonce": "Xs9vN9RpxfcFbKm4tmNc8A",
+  "message": "EVFinder: assine esta mensagem para entrar com a sua carteira.\n\nCarteira: 2KRku...\nNonce: Xs9vN9RpxfcFbKm4tmNc8A",
+  "expiresAt": "2026-10-09T10:05:00"
+}
+```
+
+---
+
+### Enviar a assinatura
+
+```http
+POST /api/v1/auth/verify
+```
+
+A carteira assina a `message` **exatamente como veio**, e a assinatura vai em Base58. Exemplo no frontend:
+
+```js
+const encoded = new TextEncoder().encode(challenge.message);
+const { signature } = await provider.signMessage(encoded, "utf8"); // ex.: window.phantom.solana
+const body = { walletAddress, nonce: challenge.nonce, signature: bs58.encode(signature) };
+```
+
+#### Request
+
+```json
+{
+  "walletAddress": "2KRkuVLqPqBT74msykhAScZy3uWcvCJH2vwjoz17xaqt",
+  "nonce": "Xs9vN9RpxfcFbKm4tmNc8A",
+  "signature": "5h3Q...assinatura em Base58"
+}
+```
+
+#### Response
+
+```json
+{
+  "token": "RkmPZGyX1aSuI-2Xuwd3QNYM4ETkMPeLw0tf45XlpuQ",
+  "walletAddress": "2KRkuVLqPqBT74msykhAScZy3uWcvCJH2vwjoz17xaqt",
+  "expiresAt": "2026-10-16T10:00:00"
+}
+```
+
+A resposta é `401` quando a assinatura não confere ou quando o desafio não existe, venceu, foi pedido por outra carteira ou já foi usado. Cada desafio vale uma única vez.
+
+---
+
+### Sair
+
+```http
+POST /api/v1/auth/logout
+Authorization: Bearer <token>
+```
+
+Encerra a sessão do token. Responde `204`.
+
+---
+
+### Rotas que exigem login
+
+Envie o token no cabeçalho `Authorization: Bearer <token>`. Sem token, ou com token vencido ou encerrado, a resposta é `401`.
+
+Hoje, só o [check-in](#check-in-em-uma-estação) exige login.
+
+O token não fica salvo no banco, só o hash SHA-256 dele. As validades ficam no `application.properties`:
+
+```properties
+auth.challenge-duration=5m
+auth.session-duration=7d
+```
+
+---
+
 # 🪙 Rewards — Charge-to-Earn
 
 Módulo responsável pelo sistema de recompensas do EVFinder.
@@ -440,12 +551,19 @@ POST /api/v1/rewards/check-in
 
 Registra o check-in do usuário em uma estação **cadastrada no banco local** (`/api/v1/stations`) e concede os tokens. Cada check-in fica salvo na tabela `check_ins`.
 
+**Exige login.** A carteira que recebe os tokens é a do token de sessão (veja [Auth](#-auth--login-com-a-carteira)), não um campo do corpo.
+
 #### Request
+
+```http
+POST /api/v1/rewards/check-in
+Authorization: Bearer <token>
+Content-Type: application/json
+```
 
 ```json
 {
   "stationId": 1,
-  "userWalletAddress": "A1B2C3D4E5",
   "latitude": -23.5613,
   "longitude": -46.6565
 }
@@ -469,7 +587,6 @@ Registra o check-in do usuário em uma estação **cadastrada no banco local** (
 | Campo | Regra |
 |---|---|
 | `stationId` | Obrigatório |
-| `userWalletAddress` | Obrigatório (espaços no início e no fim são ignorados) |
 | `latitude` | Obrigatório, entre -90 e 90 |
 | `longitude` | Obrigatório, entre -180 e 180 |
 
@@ -477,6 +594,7 @@ Registra o check-in do usuário em uma estação **cadastrada no banco local** (
 
 | Regra | Padrão | Erro quando não é cumprida |
 |---|---|---|
+| O usuário precisa estar logado | — | `401` |
 | A estação precisa existir | — | `404` |
 | O usuário precisa estar perto da estação | até 200 m | `422` – `Você está a 300 m da estação. O check-in só é permitido a até 200 m.` |
 | A mesma carteira só pontua de novo na mesma estação depois de um intervalo | 24 h | `409` – `Você já fez check-in nesta estação. Tente novamente em 23h05min.` |
@@ -555,17 +673,18 @@ EVFINDER/
     │   ├── main/
     │   │   ├── java/com/evfinder/
     │   │   │   ├── controller/     # Rotas REST
-    │   │   │   ├── service/        # Regras de negócio (ex.: recomendação, check-in)
+    │   │   │   ├── service/        # Regras de negócio (ex.: recomendação, check-in, login)
     │   │   │   ├── repository/     # Acesso ao banco (Spring Data JPA)
-    │   │   │   ├── entity/         # Tabelas: Station, Vehicle e CheckIn
+    │   │   │   ├── entity/         # Tabelas: Station, Vehicle, CheckIn, AuthChallenge e AuthSession
     │   │   │   ├── dto/            # Entrada e saída da API, com as validações
     │   │   │   ├── integration/    # Cliente da API do Open Charge Map
-    │   │   │   ├── blockchain/     # Recompensas Solana (simuladas por enquanto)
+    │   │   │   ├── blockchain/     # Assinaturas Solana (Base58, Ed25519) e recompensas (simuladas)
+    │   │   │   ├── security/       # @AuthenticatedWallet: carteira logada nos controllers
     │   │   │   ├── exception/      # Tratamento global de erros
-    │   │   │   └── config/         # CORS e regras do check-in (RewardProperties)
+    │   │   │   └── config/         # CORS e regras do check-in e do login (RewardProperties, AuthProperties)
     │   │   └── resources/
     │   │       └── application.properties
-    │   └── test/                   # Testes dos controllers e das regras do check-in
+    │   └── test/                   # Testes dos controllers, das regras e das assinaturas
     ├── .env.example                # Modelo das variáveis de ambiente (copie para .env)
     ├── docker-compose.yml          # PostgreSQL local
     ├── mvnw / mvnw.cmd             # Maven Wrapper
@@ -668,7 +787,8 @@ Funcionalidades atualmente disponíveis:
 - [x] Validação dos dados de entrada
 - [ ] Integração completa com blockchain
 - [ ] Emissão real de tokens
-- [ ] Autenticação e autorização
+- [x] Login com a carteira Solana (assinatura de mensagem)
+- [ ] Login exigido também nas rotas de veículos
 - [ ] Testes automatizados completos
 
 ---

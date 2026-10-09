@@ -57,8 +57,8 @@ class CheckInServiceTest {
 
     @Test
     void registraCheckInEConcedeTokens() {
-        // ~145 m da estação, e com espaços em volta da carteira
-        RewardResponse response = service.checkIn(request(" WALLET1 ", STATION_LAT + 0.0013));
+        // ~145 m da estação
+        RewardResponse response = service.checkIn("WALLET1", request(STATION_LAT + 0.0013));
 
         assertThat(response.tokensAwarded()).isEqualTo(5.0);
         assertThat(response.solanaTransactionHash()).isEqualTo("sol_tx_teste");
@@ -77,7 +77,7 @@ class CheckInServiceTest {
     void lancaNotFoundQuandoEstacaoNaoExiste() {
         when(stationRepository.findLockedById(99L)).thenReturn(Optional.empty());
 
-        assertThatThrownBy(() -> service.checkIn(new CheckInRequest(99L, "WALLET1", STATION_LAT, STATION_LNG)))
+        assertThatThrownBy(() -> service.checkIn("WALLET1", new CheckInRequest(99L, STATION_LAT, STATION_LNG)))
                 .isInstanceOf(ResourceNotFoundException.class)
                 .hasMessage("Estação com ID 99 não encontrada.");
 
@@ -87,7 +87,7 @@ class CheckInServiceTest {
     @Test
     void recusaCheckInLongeDaEstacao() {
         // ~300 m da estação, acima do limite de 200 m
-        assertThatThrownBy(() -> service.checkIn(request("WALLET1", STATION_LAT + 0.0027)))
+        assertThatThrownBy(() -> service.checkIn("WALLET1", request(STATION_LAT + 0.0027)))
                 .isInstanceOfSatisfying(ResponseStatusException.class, ex -> {
                     assertThat(ex.getStatusCode()).isEqualTo(HttpStatus.UNPROCESSABLE_CONTENT);
                     assertThat(ex.getReason())
@@ -102,7 +102,7 @@ class CheckInServiceTest {
     void recusaCheckInEmEstacaoSemLocalizacao() {
         when(stationRepository.findLockedById(1L)).thenReturn(Optional.of(station(null, null)));
 
-        assertThatThrownBy(() -> service.checkIn(request("WALLET1", STATION_LAT)))
+        assertThatThrownBy(() -> service.checkIn("WALLET1", request(STATION_LAT)))
                 .isInstanceOfSatisfying(ResponseStatusException.class,
                         ex -> assertThat(ex.getStatusCode()).isEqualTo(HttpStatus.CONFLICT));
 
@@ -113,7 +113,7 @@ class CheckInServiceTest {
     void recusaCheckInRepetidoAntesDoIntervalo() {
         lastCheckInOf("WALLET1", LocalDateTime.now().minusHours(1));
 
-        assertThatThrownBy(() -> service.checkIn(request("WALLET1", STATION_LAT)))
+        assertThatThrownBy(() -> service.checkIn("WALLET1", request(STATION_LAT)))
                 .isInstanceOfSatisfying(ResponseStatusException.class, ex -> {
                     assertThat(ex.getStatusCode()).isEqualTo(HttpStatus.CONFLICT);
                     assertThat(ex.getReason())
@@ -128,7 +128,7 @@ class CheckInServiceTest {
     void permiteNovoCheckInDepoisDoIntervalo() {
         lastCheckInOf("WALLET1", LocalDateTime.now().minusHours(25));
 
-        RewardResponse response = service.checkIn(request("WALLET1", STATION_LAT));
+        RewardResponse response = service.checkIn("WALLET1", request(STATION_LAT));
 
         assertThat(response.status()).isEqualTo("SUCCESS");
         verify(checkInRepository).save(any());
@@ -149,8 +149,8 @@ class CheckInServiceTest {
                 .thenReturn(Optional.of(lastCheckIn));
     }
 
-    private static CheckInRequest request(String walletAddress, double userLat) {
-        return new CheckInRequest(1L, walletAddress, userLat, STATION_LNG);
+    private static CheckInRequest request(double userLat) {
+        return new CheckInRequest(1L, userLat, STATION_LNG);
     }
 
     private static Station station(Double latitude, Double longitude) {
