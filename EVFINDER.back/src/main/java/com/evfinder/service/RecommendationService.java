@@ -22,10 +22,11 @@ public class RecommendationService {
         this.openChargeClient = openChargeClient;
     }
 
-    public List<OcmStationDto> recommendStations(Long vehicleId, Double currentLat, Double currentLng, Double radiusKm) {
-        
-        // 1. Busca o carro no banco de dados local
-        Vehicle vehicle = vehicleRepository.findById(vehicleId)
+    public List<OcmStationDto> recommendStations(String walletAddress, Long vehicleId, Double currentLat, Double currentLng, Double radiusKm) {
+
+        // 1. Busca o carro no banco de dados local. Veículo de outra carteira recebe o mesmo 404
+        // de um veículo inexistente, para não revelar quais IDs existem
+        Vehicle vehicle = vehicleRepository.findByIdAndOwnerWalletAddress(vehicleId, walletAddress)
                 .orElseThrow(() -> new ResourceNotFoundException("Veículo não encontrado. ID: " + vehicleId));
 
         // Sem conector não há como filtrar, então nem chama a API externa
