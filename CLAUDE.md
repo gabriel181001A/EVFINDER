@@ -25,10 +25,17 @@ O arquivo `.env` (fora do git, modelo em `.env.example`) precisa de:
 - **DTOs:** são `record` com Bean Validation. As mensagens são curtas e em português, como `"é obrigatório"` e `"deve estar entre -90 e 90"`.
 - **Erros:** o `GlobalExceptionHandler` devolve sempre `{status, error, message, timestamp}`.
   - `ResourceNotFoundException` vira 404.
-  - Violação de regra de negócio vira `ResponseStatusException` com o status adequado: 400, 409 ou 422.
-- **Configuração de regras:** fica em `application.properties` e é lida por records `@ConfigurationProperties`. Exemplo: `RewardProperties`, com as propriedades `rewards.*`.
+  - Violação de regra de negócio vira `ResponseStatusException` com o status adequado: 400, 401, 409 ou 422.
+- **Configuração de regras:** fica em `application.properties` e é lida por records `@ConfigurationProperties`. Exemplos: `RewardProperties` (`rewards.*`) e `AuthProperties` (`auth.*`).
+- **Login com a carteira** (`AuthService`, rotas `/api/v1/auth`):
+  - O app pede um desafio (nonce + mensagem, válido por 5 min), a carteira assina e o app troca a assinatura por um token de sessão (7 dias).
+  - A assinatura é Ed25519 e é conferida pelo `SolanaSignatureVerifier`, usando o próprio endereço como chave pública. Não há biblioteca externa: Base58 é próprio e Ed25519 é nativo do Java.
+  - Cada desafio vale uma vez. O banco guarda só o SHA-256 do token. Não há Spring Security.
+  - Para exigir login numa rota, adicione um parâmetro `@AuthenticatedWallet String walletAddress` no controller. O `AuthenticatedWalletResolver` lê `Authorization: Bearer <token>` e responde 401 se o token for inválido.
+  - Nos testes de controller, registre o resolver com `.setCustomArgumentResolvers(new AuthenticatedWalletResolver(authServiceMock))`. Nos testes de assinatura, use a `TestWallet`, que gera chaves Ed25519 de verdade.
 - **Banco:** usa `ddl-auto=update`, sem migrations. O Hibernate cria e atualiza as tabelas.
 - **Check-in** (`CheckInService`):
+  - Exige login: a carteira vem do token, não do corpo.
   - A estação precisa existir no banco local.
   - O usuário precisa estar a no máximo 200 m da estação (Haversine).
   - A mesma carteira faz 1 check-in por estação a cada 24 h.
@@ -53,19 +60,21 @@ O arquivo `.env` (fora do git, modelo em `.env.example`) precisa de:
 
 Atualize esta seção ao concluir uma etapa.
 
-**Já feito** (PRs #1 a #4, outubro de 2026):
+**Já feito** (outubro de 2026):
 - Chave da API no `.env`.
 - Tratamento de erros com os status HTTP corretos.
 - Bean Validation nos DTOs.
 - CI no GitHub Actions.
 - `docker-compose.yml`.
 - Check-in com regras de negócio e histórico.
+- Login com a carteira Solana. O check-in exige login.
 
 **Próximos passos candidatos**, em ordem de prioridade sugerida:
-1. **Autenticação da carteira.** Hoje qualquer pessoa pode informar qualquer endereço e acumular tokens. A ideia é o usuário provar que é dono da carteira assinando uma mensagem.
-2. **Check-in em estações do Open Charge Map.** Elas aparecem nas recomendações, mas o `OcmStationDto` ainda não expõe o ID da estação.
-3. **Emissão real de tokens na Solana.** Ela deve sair da transação do banco: salvar o check-in como pendente e emitir depois.
+1. **Check-in em estações do Open Charge Map.** Elas aparecem nas recomendações, mas o `OcmStationDto` ainda não expõe o ID da estação.
+2. **Emissão real de tokens na Solana.** Ela deve sair da transação do banco: salvar o check-in como pendente e emitir depois.
+3. **Login nas rotas de veículos.** Hoje qualquer pessoa cadastra veículo para qualquer carteira. Basta usar o `@AuthenticatedWallet` no `VehicleController`.
 
 **Limitações conhecidas:**
 - A posição do usuário no check-in vem do cliente e pode ser falsificada.
 - O CORS está aberto para qualquer origem (`WebConfig`).
+- Desafios e sessões vencidos só são apagados quando alguém pede um desafio novo ou faz login. Não há limpeza agendada.
