@@ -18,28 +18,22 @@ public class VehicleService {
         this.repository = repository;
     }
 
-    public VehicleResponse createVehicle(VehicleRequest request) {
+    // ownerWalletAddress é a carteira autenticada pelo token de sessão
+    public VehicleResponse createVehicle(String ownerWalletAddress, VehicleRequest request) {
         Vehicle vehicle = new Vehicle();
         vehicle.setMake(request.make());
         vehicle.setModel(request.model());
         vehicle.setBatteryCapacityKwh(request.batteryCapacityKwh());
         vehicle.setConnectorType(request.connectorType());
-        vehicle.setOwnerWalletAddress(request.ownerWalletAddress());
+        vehicle.setOwnerWalletAddress(ownerWalletAddress);
 
         Vehicle savedVehicle = repository.save(vehicle);
         return mapToResponse(savedVehicle);
     }
 
-    public List<VehicleResponse> getAllVehicles() {
-        return repository.findAll()
-                .stream()
-                .map(this::mapToResponse)
-                .collect(Collectors.toList());
-    }
-
-    // Busca específica para a integração Web3
-    public List<VehicleResponse> getVehiclesByWallet(String walletAddress) {
-        return repository.findByOwnerWalletAddress(walletAddress)
+    // Garagem do usuário logado: só os veículos da própria carteira
+    public List<VehicleResponse> getVehiclesByOwner(String ownerWalletAddress) {
+        return repository.findByOwnerWalletAddress(ownerWalletAddress)
                 .stream()
                 .map(this::mapToResponse)
                 .collect(Collectors.toList());
